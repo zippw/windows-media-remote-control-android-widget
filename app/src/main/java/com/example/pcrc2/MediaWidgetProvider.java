@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.widget.RemoteViews;
+import android.graphics.Color;
 
 public class MediaWidgetProvider extends AppWidgetProvider {
 
@@ -20,47 +21,30 @@ public class MediaWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_VOL_UP = "com.example.pcrc2.VOL_UP";
 
     @Override
-    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        for (int appWidgetId : appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId);
-        }
-    }
-
-    @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         String action = intent.getAction();
 
         if (action == null) return;
 
-        if (action.equals(UPDATE_STATUS)) {
-            MediaClient.sendAction("status", new MediaClient.Callback() {
-                @Override
-                public void onResult(boolean reachedServer) {
-                    isConnected = reachedServer;
-                    updateAllWidgets(context);
-                }
-            });
-            return;
-        }
-
         String command = "";
-        if (action.equals(ACTION_PREV)) command = "prev";
-        else if (action.equals(ACTION_PLAY)) command = "play";
-        else if (action.equals(ACTION_NEXT)) command = "next";
-        else if (action.equals(ACTION_MUTE)) command = "mute";
-        else if (action.equals(ACTION_VOL_DOWN)) command = "voldown";
-        else if (action.equals(ACTION_VOL_UP)) command = "volup";
-
-        if (!command.isEmpty()) {
-            MediaClient.sendAction(command, new MediaClient.Callback() {
-                @Override
-                public void onResult(boolean reachedServer) {
-                    isConnected = reachedServer;
-                    updateAllWidgets(context);
-                }
-            });
+        switch (action) {
+            case AppWidgetManager.ACTION_APPWIDGET_UPDATE:
+            case "android.net.conn.CONNECTIVITY_CHANGE":
+            case UPDATE_STATUS:
+                command = "status"; break;
+            case ACTION_PREV: command = "prev"; break;
+            case ACTION_PLAY: command = "play"; break;
+            case ACTION_NEXT: command = "next"; break;
+            case ACTION_MUTE: command = "mute"; break;
+            case ACTION_VOL_DOWN: command = "voldown"; break;
+            case ACTION_VOL_UP: command = "volup"; break;
         }
+
+        if (!command.isEmpty()) MediaClient.sendAction(command, reachedServer -> {
+            isConnected = reachedServer;
+            updateAllWidgets(context);
+        });
     }
 
     private void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
@@ -74,11 +58,16 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         setPendingIntent(context, views, R.id.btn_vol_up, ACTION_VOL_UP);
         setPendingIntent(context, views, R.id.status_container, UPDATE_STATUS);
 
-        int iconRes = isConnected ? R.drawable.monitor_linear_green : R.drawable.monitor_linear_gray;
-        String statusText = isConnected ? "Connected" : "Offline";
+        String statusText = isConnected ? "Active" : "Offline";
+        int targetColor = isConnected
+                ? Color.parseColor("#00FF44")
+                : Color.parseColor("#5D5D5D");
+
+        views.setImageViewResource(R.id.status_icon, R.drawable.monitor_linear_gray);
+        views.setInt(R.id.status_icon, "setColorFilter", targetColor);
 
         views.setTextViewText(R.id.status_text, statusText);
-        views.setImageViewResource(R.id.status_icon, iconRes);
+        views.setTextColor(R.id.status_text, targetColor);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
@@ -96,8 +85,6 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         ComponentName componentName = new ComponentName(context, MediaWidgetProvider.class);
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
 
-        for (int appWidgetId : appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId);
-        }
+        for (int appWidgetId : appWidgetIds) updateWidget(context, appWidgetManager, appWidgetId);
     }
 }

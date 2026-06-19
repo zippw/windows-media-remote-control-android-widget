@@ -18,8 +18,8 @@
         android:gravity="center"
         android:paddingStart="6dp"
         android:paddingEnd="6dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:clickable="true"
         android:focusable="true"
         android:background="@drawable/status_ripple_rounded">
